@@ -1,0 +1,57 @@
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <HTTPClient.h>
+#include <DHT.h>
+
+#define WIFI_SSID "NET"
+#define WIFI_PASSWORD "123456789I"
+#define DHT_PIN 25
+#define DHT_TYPE DHT22
+
+DHT dht(DHT_PIN, DHT_TYPE);
+WiFiClient client;
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+  }
+
+  Serial.println("Connected to WiFi");
+  dht.begin();
+}
+
+void loop() {
+  float temperature = dht.readTemperature();
+  float humidity = dht.readHumidity();
+
+  if (isnan(temperature) || isnan(humidity)) {
+    Serial.println("Failed to read data from DHT sensor");
+    return;
+  }
+
+  Serial.print("Temperature: ");
+  Serial.print(temperature);
+  Serial.print(" °C\tHumidity: ");
+  Serial.print(humidity);
+  Serial.println(" %");
+
+  String url = "http://yourwebsite.com/get?temperature=" + String(temperature) +
+               "&humidity=" + String(humidity);
+
+  if (client.connect("yourwebsite.com", 80)) {
+    client.println("GET " + url + " HTTP/1.1");
+    client.println("Host: yourwebsite.com");
+    client.println("Connection: close");
+    client.println();
+    delay(10);
+    client.stop();
+  } else {
+    Serial.println("Failed to connect to server");
+  }
+
+  delay(5000);
+}
